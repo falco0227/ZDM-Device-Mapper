@@ -1,0 +1,24 @@
+From d373b04f4fbf86ef85dd5197386c68a7e869f4c2 Mon Sep 17 00:00:00 2001
+From: Shaun Tancheff <shaun.tancheff@seagate.com>
+Date: Wed, 19 Aug 2015 17:15:37 -0500
+Subject: [PATCH 2/2] Added a label to ZDM superblock.
+
+---
+ libblkid/src/superblocks/zdm.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/libblkid/src/superblocks/zdm.c b/libblkid/src/superblocks/zdm.c
+index a458cb4..951727a 100644
+--- a/libblkid/src/superblocks/zdm.c
++++ b/libblkid/src/superblocks/zdm.c
+@@ -36,6 +36,7 @@ struct zdm_super_block {
+ 	u32 discard;     /* if discard support is enabled */
+ 	u32 disk_type;   /* HA | HM */
+ 	u32 zac_zbc;     /* if ZAC / ZBC is supported on backing device */
++	char label[64];
+ };
+ typedef struct zdm_super_block zdm_super_block_t;
+ 
+-- 
+1.9.1
+

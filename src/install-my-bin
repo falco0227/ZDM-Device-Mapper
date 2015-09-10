@@ -1,0 +1,21 @@
+#!/bin/bash
+
+SCRIPTS="${PWD}/zdmadm ${PWD}/zdm-status ${PWD}/zdm-zones"
+INSTALL_TO="${HOME}/bin"
+
+if [[ ! -d ${INSTALL_TO} ]]; then
+	echo ${INSTALL_TO} not found. Creating.
+	mkdir ${INSTALL_TO}
+fi
+
+if [[ -d ${INSTALL_TO} ]]; then
+	echo Installing ${SCRIPTS} to ${INSTALL_TO} ...
+	cd ${INSTALL_TO}
+fi
+
+echo Installing scripts to ${INSTALL_TO}
+for i in ${SCRIPTS}
+do
+	echo ln -sf ${i} ~/bin/.
+	ln -sf ${i} .
+done

@@ -1,0 +1,147 @@
+From 86e84646c076bfc63d51383f5487029281e1f38e Mon Sep 17 00:00:00 2001
+From: Shaun Tancheff <shaun.tancheff@seagate.com>
+Date: Mon, 17 Aug 2015 19:23:10 -0500
+Subject: [PATCH 1/2] Initial support for ZDM.
+
+---
+ libblkid/src/Makemodule.am             |  1 +
+ libblkid/src/superblocks/superblocks.c |  1 +
+ libblkid/src/superblocks/superblocks.h |  1 +
+ libblkid/src/superblocks/zdm.c         | 89 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 92 insertions(+)
+ create mode 100644 libblkid/src/superblocks/zdm.c
+
+diff --git a/libblkid/src/Makemodule.am b/libblkid/src/Makemodule.am
+index 7682958..aaeaa05 100644
+--- a/libblkid/src/Makemodule.am
++++ b/libblkid/src/Makemodule.am
+@@ -92,6 +92,7 @@ libblkid_la_SOURCES = \
+ 	libblkid/src/superblocks/vmfs.c \
+ 	libblkid/src/superblocks/vxfs.c \
+ 	libblkid/src/superblocks/xfs.c \
++	libblkid/src/superblocks/zdm.c \
+ 	libblkid/src/superblocks/zfs.c \
+ 	\
+ 	libblkid/src/topology/topology.c \
+diff --git a/libblkid/src/superblocks/superblocks.c b/libblkid/src/superblocks/superblocks.c
+index 334d673..8c129f5 100644
+--- a/libblkid/src/superblocks/superblocks.c
++++ b/libblkid/src/superblocks/superblocks.c
+@@ -102,6 +102,7 @@ static const struct blkid_idinfo *idinfos[] =
+ 	&jmraid_idinfo,
+ 
+ 	&bcache_idinfo,
++	&zdm_idinfo,
+ 	&drbd_idinfo,
+ 	&drbdproxy_datalog_idinfo,
+ 	&lvm2_idinfo,
+diff --git a/libblkid/src/superblocks/superblocks.h b/libblkid/src/superblocks/superblocks.h
+index 238a9ff..fe97ccc 100644
+--- a/libblkid/src/superblocks/superblocks.h
++++ b/libblkid/src/superblocks/superblocks.h
+@@ -74,6 +74,7 @@ extern const struct blkid_idinfo nilfs2_idinfo;
+ extern const struct blkid_idinfo exfat_idinfo;
+ extern const struct blkid_idinfo f2fs_idinfo;
+ extern const struct blkid_idinfo bcache_idinfo;
++extern const struct blkid_idinfo zdm_idinfo;
+ 
+ /*
+  * superblock functions
+diff --git a/libblkid/src/superblocks/zdm.c b/libblkid/src/superblocks/zdm.c
+new file mode 100644
+index 0000000..a458cb4
+--- /dev/null
++++ b/libblkid/src/superblocks/zdm.c
+@@ -0,0 +1,89 @@
++/*
++ * Copyright (C) 2015 Shaun Tancheff <shaun@tancheff.com>
++ *
++ * This file may be redistributed under the terms of the
++ * GNU Lesser General Public License.
++ *
++ * Based on code fragments from zdm-tools
++ */
++
++#include <stddef.h>
++#include <stdio.h>
++#include <uuid/uuid.h>
++
++#include "superblocks.h"
++#include "crc64.h"
++
++typedef uint8_t      u8;
++typedef uint32_t    u32;
++typedef uint64_t    u64;
++
++static const char zdm_magic[] = {
++	0x7a, 0x6f, 0x6e, 0x65, 0x63, 0x44, 0x45, 0x56,
++	0x82, 0x65, 0xf5, 0x7f, 0x48, 0xba, 0x6d, 0x81
++};
++
++struct zdm_super_block {
++	u64 crc64;
++	u8  magic[ARRAY_SIZE(zdm_magic)];
++	uuid_t  uuid;
++	u32 version;     /* 0xMMMMmmpt */
++	u64 sect_start;
++	u64 sect_size;
++	u32 mz_metadata_zones;     /* 3 (default) */
++	u32 mz_over_provision;     /* 5 (minimum) */
++	u64 zdm_blocks;  /* 0 -> <zdm_blocks> for dmsetup table entry */
++	u32 discard;     /* if discard support is enabled */
++	u32 disk_type;   /* HA | HM */
++	u32 zac_zbc;     /* if ZAC / ZBC is supported on backing device */
++};
++typedef struct zdm_super_block zdm_super_block_t;
++
++static uint64_t zdm_crc64(zdm_super_block_t *sblk)
++{
++	u64 icrc = sblk->crc64;
++	unsigned char *data = (unsigned char *) sblk;
++	size_t sz = sizeof(*sblk);
++	u64 calc;
++
++	sblk->crc64 = 0ul;
++	calc = crc64(0xFFFFFFFFFFFFFFFFULL, data, sz) ^ 0xFFFFFFFFFFFFFFFFULL;
++	sblk->crc64 = icrc;
++
++	return calc;
++}
++
++static int probe_zdm (blkid_probe pr, const struct blkid_idmag *mag)
++{
++	zdm_super_block_t *sblk;
++
++	sblk = blkid_probe_get_sb(pr, mag, struct zdm_super_block);
++	if (!sblk)
++		return errno ? -errno : BLKID_PROBE_NONE;
++
++	if (!blkid_probe_verify_csum(pr, zdm_crc64(sblk), le64_to_cpu(sblk->crc64)))
++		return BLKID_PROBE_NONE;
++
++	if (blkid_probe_set_uuid(pr, sblk->uuid) < 0)
++		return BLKID_PROBE_NONE;
++
++	return BLKID_PROBE_OK;
++}
++
++const struct blkid_idinfo zdm_idinfo =
++{
++	.name		= "zdm",
++	.usage		= BLKID_USAGE_OTHER,
++	.probefunc	= probe_zdm,
++	.minsz		= 1 << 12,
++	.magics		=
++	{
++		{
++		  .magic = zdm_magic,
++		  .len   = sizeof(zdm_magic),
++		  .kboff = 0,
++		  .sboff = offsetof(struct zdm_super_block, magic)
++		} ,
++		{ NULL }
++	}
++};
+-- 
+1.9.1
+
