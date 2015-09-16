@@ -8,34 +8,24 @@ Host Managed drives.
 
 ## Architecture
 
-ZDM treats a zoned device as a collection of 1024 zones [256GiB],
-referred to internally as 'megazones' as with zoned devices the last
-megazone may be less than 1024 zones in size. Each megazone reserves a
-minimum 8 zones for metadata and over-provisioning [less than 1% of a disk].
+ZDM treats a zoned device as a collection of 1024 zones [256GiB], referred to internally as 'megazones'. The last megazone may be less than 1024 zones in size. Each megazone reserves a minimum 8 zones for meta data and over-provisioning [less than 1% of a disk].
 
-Device trim [aka discard] support is enabled by default. It is recommeded
-to increase the over-provision ratio if discard is disabled.
+Device trim [aka discard] support is enabled by default. It is recommended to increase the over-provision ratio when discard support is disabled.
 
-The initial implementation focuses on drives with same sized zones of
-256MB which is 65536 4k blocks. In future the zone size of 256MB will
-be relaxed to allow any size of zone as long as they are all the same.
+The initial implementation focuses on drives with same sized zones of 256MB which is 65536 4k blocks. In future the zone size of 256MB will be relaxed to allow any size of zone as long as they are all the same.
+Internally all addressing is on 4k boundaries. Currently a 4k PAGE_SIZE is assumed. Architectures with 8k (or other) PAGE_SIZE values have not been tested and are likely broken at the moment.
 
-Internally all addressing is on 4k boundaries. Currently a 4k PAGE_SIZE is
-assumed. Architectures with 8k (or other) PAGE_SIZE values have not been
-tested and are likly broken at the moment.
-
-Host Managed drives should work if the zone type at the start of the partition
-is Conventional, or Preferred.
+Host Managed drives should work if the zone type at the start of the partition is Conventional, or Preferred.
 
 ## Software Requirements
 
-  - Current Linux Kenrel (4.2) with ZDM patches
+  - Current Linux Kernel (4.2) with ZDM patches
   - Recommended: sg3utils (1.41 or later)
 
 ## Caveat Emptor - Warning
 
   - ZDM software is a work in progress. It is currently intended for testing
-    and reference. It may crash, hang, or worse you could loose data!
+    and reference. It may crash, hang, or worse you could lose data!
 
 ## Current restrictions/assumptions
 
@@ -64,7 +54,7 @@ or
       sd_reset_wp ata -1 /dev/sdX
 ```
 
-  - Partition the drive to start the partion at a WP boundary.
+  - Partition the drive to start the partition at a WP boundary.
 ```
       parted /dev/sdX
       mklabel gpt
