@@ -33,7 +33,7 @@ Host Managed drives should work if the zone type at the start of the partition i
   - 4k page / block size.
   - Host Aware, Conventional
   - Host Managed w/partition starting on a Conventional, or Preferred zone type.
-  - Currently 1 GiB of RAM per drive is recommened.
+  - Currently 1 GiB of RAM per drive is recommeneded.
 
 ## Userspace utilities
   - zdm-tools: zdmadm, zdm-status, zdm-zones ...
