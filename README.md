@@ -104,3 +104,37 @@ If not, please see http://www.gnu.org/licenses/.
 
  - Adrian Palmer [adrian.palmer@seagate.com](mailto:adrian.palmer@seagate.com)
  
+## Observations and Known Issues
+
+ - Issue
+    * System: 	Dual 6 core Xeon 64 GB RAM LSI HBA
+    * Software:	Ubuntu 14.10 (GNU/Linux 4.2.0-rc8-zdm x86_64)
+    * File system: ext4 ``mkfs -E discard`` and  ``mount -o discard``
+    * Test load: Python 2.7 file create, appending writes, close. OS deletes No file reads.
+    * Results: No data corruption detected. Kenrel panic with heavy write/delete load with file system > 75% full.
+
+ - Issue
+    * System: 	Dual 6 core Xeon 64 GB RAM LSI HBA
+    * Software:	Ubuntu 14.10 (GNU/Linux 4.2.0-rc8-zdm x86_64)
+    * File system: ext4 ``mkfs -E discard`` and  ``mount -o discard``
+    * Test: LevelDB PUT/GET
+    * Method: LeveDB Python binding.  Sequential PUTs, random GETs. No DELs
+    * Results: No data corruption, no errors.
+    * Overall data throughput slightly (15%) better than 4TB desktop SATA. See table.
+|-|zdm|desktop|delta|
+|total bytes put/get in 8000 seconds|252969405|221489766|1.142126833|
+|median put MB/sec|37.237|30.073|1.238220331|
+|average put MB/sec|38.13009984|30.08739469|1.267311451|
+|median get MB/sec|101.048|97.415|1.037294051|
+|average get MB/sec|1054.253523|1355.445637|0.7777910782|
+
+ - Issue 
+    * System: SDS-6037R-E1R16L using onboard LSI/Avago 2308 HBA chipset
+    * Test: Single drive with ext4 running multiple 50GB file writes, compares, and deletes.
+    * Result: Observed no degradation in performance or miscompares.
+
+ - Issue 
+    * System: SDS-6037R-E1R16L using onboard LSI/Avago 2308 HBA chipset
+    * Test: RAID 5 across 4 drives with ZDM
+    * Result: Observed degrading performance and occasional miscompare. 
+    * Notes: ZDM is currently not optimized for the complexity of RAID5. Furthermore, it appears that one drive is stressed more during writes to the filesystem than the other 3 drives.
