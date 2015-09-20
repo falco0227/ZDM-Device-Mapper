@@ -24,8 +24,7 @@ Host Managed drives should work if the zone type at the start of the partition i
 
 ## Caveat Emptor - Warning
 
-  - ZDM software is a work in progress. It is currently intended for testing
-    and reference. It may crash, hang, or worse you could lose data!
+  - ZDM software is a work in progress, subject to change without notice and is provided without warranty for any particular intended purpose beyond testin and reference. The ZDM may become unstable, resulting in system crash or hang, including the possibiliy of data loss.  No responsibility for lost data or system damage is assummed by the creators or distributors of ZDM software.  Users explicitly assume all risk associated with running the ZDM software.
 
 ## Current restrictions/assumptions
 
